@@ -13,7 +13,9 @@ module.exports = (sequelize, DataTypes) => {
 
     var Model = sequelize.define('MODEL_NAME', attributes, options);
     Model.associate = builder.buildAssociation('MODEL_NAME', associations);
+
     builder.addHooks(Model, 'MODEL_NAME_LOWER', attributes_origin);
 
     return Model;
 };
+

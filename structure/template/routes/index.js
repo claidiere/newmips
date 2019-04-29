@@ -15,7 +15,15 @@ module.exports = function(app) {
 			app.use('/'+file, require('./'+file));
 		else if (file === 'chat')
 			app.use('/'+attrHelper.removePrefix(file, "entityOrComponent"), block_access.isLoggedIn, require('./'+file));
-		else
-			app.use('/'+attrHelper.removePrefix(file, "entityOrComponent"), block_access.isLoggedIn, block_access.entityAccessMiddleware(attrHelper.removePrefix(file, "entityOrComponent")), require('./'+file));
+		else {
+			const EntityClass = require('./'+file);
+			const Entity = new EntityClass();
+			app.use(
+				'/'+attrHelper.removePrefix(file, "entityOrComponent"),
+				block_access.isLoggedIn,
+				block_access.entityAccessMiddleware(attrHelper.removePrefix(file, "entityOrComponent")),
+				Entity.routes
+			)
+		}
 	});
 }
