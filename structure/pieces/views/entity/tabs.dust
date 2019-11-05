@@ -1,6 +1,9 @@
 {! HAS ONE !}
 {@eq key=tabType value="hasOne"}
 	{@select key=subentity}
+		{@eq value="e_custom"}
+			{! CUSTOM HAS ONE DISPLAY !}
+		{/eq}
 		{@none}
 			{#isEmpty}
 				{#__ key="message.empty" /}<br>
