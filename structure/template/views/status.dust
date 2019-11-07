@@ -1,7 +1,7 @@
 <html>
 	<body>
 		{<content}
-	    	<p>This page enables to detect if server has started.
+	    	<p>This page is used to detect if server has started.
 	    	<br>
 	    	Do not remove !</p>
 	    {/content}
