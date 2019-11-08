@@ -363,13 +363,14 @@ router.post('/update', block_access.actionAccessMiddleware("ENTITY_URL_NAME", "u
     });
 });
 
-router.get('/loadtab/:id/:alias', block_access.actionAccessMiddleware('ENTITY_URL_NAME', 'read'), function(req, res) {
-    var alias = req.params.alias;
-    var id = req.params.id;
+router.get('/loadtab/:id/:alias', block_access.actionAccessMiddleware('source', 'read'), function(req, res) {
+    const alias = req.params.alias;
+    const id = req.params.id;
+    const isForm = req.params.isForm || false;
 
     // Find tab option
-    var option;
-    for (var i = 0; i < options.length; i++)
+    let option;
+    for (let i = 0; i < options.length; i++)
         if (options[i].as == alias) {
             option = options[i];
             break;
@@ -381,143 +382,39 @@ router.get('/loadtab/:id/:alias', block_access.actionAccessMiddleware('ENTITY_UR
     if (!block_access.entityAccess(req.session.passport.user.r_group, option.target.substring(2)))
         return res.status(403).end();
 
-    var queryOpts = {
-        where: {
-            id: id
-        }
-    };
-    // If hasMany, no need to include anything since it will be fetched using /subdatalist
-    if (option.structureType != 'hasMany')
-        queryOpts.include = {
-            model: models[entity_helper.capitalizeFirstLetter(option.target)],
-            as: option.as,
-            include: {all: true}
-        }
+    let tabObject = {
+        entity: 'e_source',
+        entityId: id,
+        subentity: option.target,
+        isForm, option, alias
+    }
+    if (typeof req.query.associationFlag !== 'undefined')
+        {tabObject.associationFlag = req.query.associationFlag;tabObject.associationSource = req.query.associationSource;tabObject.associationForeignKey = req.query.associationForeignKey;tabObject.associationAlias = req.query.associationAlias;tabObject.associationUrl = req.query.associationUrl;}
 
-    // Fetch tab data
-    models.MODEL_NAME.findOne(queryOpts).then(function(ENTITY_NAME) {
-        if (!ENTITY_NAME)
-            return res.status(404).end();
-
-        var dustData = ENTITY_NAME[option.as] || null;
-        var empty = !dustData || (dustData instanceof Array && dustData.length == 0) ? true : false;
-        var dustFile, idSubentity, promisesData = [];
-        var subentityOptions = [];
-
-        // Default value
-        option.noCreateBtn = false;
-
-        // Build tab specific variables
-        switch (option.structureType) {
-            case 'hasOne':
-                if (!empty) {
-                    idSubentity = dustData.id;
-                    dustData.hideTab = true;
-                    dustData.enum_radio = enums_radios.translated(option.target, req.session.lang_user, options);
-                    promisesData.push(entity_helper.getPicturesBuffers(dustData, option.target));
-                    // Fetch status children to be able to switch status
-                    // Apply getR_children() on each current status
-                    var subentityOptions = require('../models/options/' + option.target);
-                    dustData.componentAddressConfig = component_helper.address.getMapsConfigIfComponentAddressExists(option.target);
-                    for (var i = 0; i < subentityOptions.length; i++)
-                        if (subentityOptions[i].target.indexOf('e_status') == 0)
-                            (function(alias) {
-                                promisesData.push(new Promise(function(resolve, reject) {
-                                    dustData[alias].getR_children({
-                                        include: [{
-                                            model: models.E_group,
-                                            as: "r_accepted_group"
-                                        }]
-                                    }).then(function(children) {
-                                        dustData[alias].r_children = children;
-                                        resolve();
-                                    });
-                                }));
-                            })(subentityOptions[i].as);
-                }
-                dustFile = option.target + '/show_fields';
-                break;
-
-            case 'hasMany':
-                dustFile = option.target + '/list_fields';
-                // Status history specific behavior. Replace history_model by history_table to open view
-                if (option.target.indexOf('e_history_e_') == 0)
-                    option.noCreateBtn = true;
-                dustData = {
-                    for: 'hasMany'
-                };
-                if (typeof req.query.associationFlag !== 'undefined') {
-                    dustData.associationFlag = req.query.associationFlag;
-                    dustData.associationSource = req.query.associationSource;
-                    dustData.associationForeignKey = req.query.associationForeignKey;
-                    dustData.associationAlias = req.query.associationAlias;
-                    dustData.associationUrl = req.query.associationUrl;
-                }
-                break;
-
-            case 'hasManyPreset':
-                dustFile = option.target + '/list_fields';
-                var obj = {};
-                obj[option.target] = dustData;
-                dustData = obj;
-                if (typeof req.query.associationFlag !== 'undefined') {
-                    dustData.associationFlag = req.query.associationFlag;
-                    dustData.associationSource = req.query.associationSource;
-                    dustData.associationForeignKey = req.query.associationForeignKey;
-                    dustData.associationAlias = req.query.associationAlias;
-                    dustData.associationUrl = req.query.associationUrl;
-                }
-                dustData.for = 'fieldset';
-                for (var i = 0; i < dustData[option.target].length; i++)
-                    promisesData.push(entity_helper.getPicturesBuffers(dustData[option.target][i], option.target, true));
-
-                break;
-
-            case 'localfilestorage':
-                dustFile = option.target + '/list_fields';
-                var obj = {};
-                obj[option.target] = dustData;
-                dustData = obj;
-                dustData.sourceId = id;
+    (async _ => {
+        switch (option.target) {
+            case 'e_custom_entity':
+                const customData = await models.E_source.findOne({
+                    where: {id: id},
+                    include: [{
+                        model: models.E_custom_entity
+                    }, {
+                        model: models.E_another_entity
+                    }]
+                });
                 break;
 
             default:
-                return res.status(500).end();
+                tabObject.data = await tab_helper.buildData(req, tabObject);
         }
-
-        // Get association data that needed to be load directly here (to do so set loadOnStart param to true in options).
-        entity_helper.getLoadOnStartData(dustData, subentityOptions).then(function(dustData) {
-            // Image buffer promise
-            Promise.all(promisesData).then(function() {
-                // Open and render dust file
-                var file = fs.readFileSync(__dirname + '/../views/' + dustFile + '.dust', 'utf8');
-                dust.insertLocalsFn(dustData ? dustData : {}, req);
-                dust.renderSource(file, dustData || {}, function(err, rendered) {
-                    if (err) {
-                        console.error(err);
-                        return res.status(500).end();
-                    }
-
-                    // Send response to ajax request
-                    res.json({
-                        content: rendered,
-                        data: idSubentity || {},
-                        empty: empty,
-                        option: option
-                    });
-                });
-            }).catch(function(err) {
-                console.error(err);
-                res.status(500).send(err);
-            });
-        }).catch(function(err) {
-            console.error(err);
-            res.status(500).send(err);
-        });
-    }).catch(function(err) {
+    }).then(_ => {
+        res.render('e_source/tabs', tabObject);
+    }).catch(err => {
         console.error(err);
-        res.status(500).send(err);
-    });
+        if (err.statusCode)
+            return res.status(err.statusCode).end();
+        res.status(500).end();
+    })
 });
 
 router.get('/set_status/:id_ENTITY_URL_NAME/:status/:id_new_status', block_access.actionAccessMiddleware("ENTITY_URL_NAME", "read"), block_access.statusGroupAccess, function(req, res) {
