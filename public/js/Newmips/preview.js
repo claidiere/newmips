@@ -413,7 +413,8 @@ $(document).ready(function() {
         delay: 200,
         source: function(request, response) {
             $.getJSON('/default/completion', {
-                "str": request.term
+                str: request.term,
+                application: appName
             }, response);
         },
         search: function() {

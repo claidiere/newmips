@@ -1,4 +1,5 @@
 const Application = require('./application');
+const models = require('../models');
 
 class Metadata {
 	constructor() {
@@ -17,6 +18,11 @@ class Metadata {
 			this._applications.push(loadedApp);
 
 		return loadedApp;
+	}
+
+	// TODO
+	getApplications() {
+		return [];
 	}
 
 	deleteApplication(name) {

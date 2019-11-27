@@ -90,6 +90,13 @@ class Application {
 		return this._modules;
 	}
 
+	get entities() {
+		let entities = [];
+		for (const moduleObj of this._modules)
+			entities = [...entities, ...moduleObj.entities]
+		return entities;
+	}
+
 	get associationSeq() {
 		return this._associationSeq;
 	}
