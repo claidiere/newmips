@@ -2846,17 +2846,42 @@ exports.parse = (instruction) => {
 	return data;
 }
 
+
+function findCapturingGroupEnd(actionTraining, instructionSplit, instructionIdx, captureNb) {
+	let instruGroupEndIdx = instructionSplit.length;
+	for (let i = instructionIdx; i < instructionSplit.length; i++) {
+		trainingLoop:
+		for (const training of actionTraining) {
+			if ((training.match(/\(\.\*\)/, 'g') || []).length < captureNb)
+				continue;
+			let reducedTraining = training.split('(.*)')[captureNb].split(' ').filter(x => x != '');
+			for (let j = 0; j < reducedTraining.length; j++) {
+				if (reducedTraining[j] == instructionSplit[i]) {
+					if (instruGroupEndIdx > i - 1)
+						instruGroupEndIdx = i-1;
+					continue trainingLoop;
+				}
+			}
+
+		}
+	}
+
+	return instruGroupEndIdx == instructionSplit.length ? -1 : instruGroupEndIdx;
+}
+
+
 // ******* Completion *******
 exports.complete = function (inputInstruction, appName) {
 	let answers = [];
 	actions:
 	for (const action in training) {
+		let capturingGroupCount = 0, capturingGroupValues = [];
 		actionInstructions:
 		for (const trainingInstru of training[action].instructions) {
-			const instruSplit = inputInstruction.split(' ');
-			const trainingSplit = trainingInstru.split(' ');
+			const instruSplit = inputInstruction.split(' ').filter(x => x != '');
+			const trainingSplit = trainingInstru.split(' ').filter(x => x != '');
 
-			let i = 0, capturingGroupCount = 0, capturingGroupValues = [];
+			let i = 0;
 			while (true) {
 				// Bounds checks
 				{
@@ -2888,27 +2913,24 @@ exports.complete = function (inputInstruction, appName) {
 							continue actions;
 						}
 						// There is more to match after capturing group
+						// Isolate user input's capturing group
 						else {
-							let tmpIdx = i-1;
-							while (++tmpIdx) {
-								if (!instruSplit[tmpIdx]) {
-									// if (training[action].autocomplete && training[action].autocomplete[capturingGroupCount]) {
-									// 	answers = [...answers, ...training[action].autocomplete[capturingGroupCount-1](appName, capturingGroupValues)];
-									// }
-									console.log('ICI ICI ICI');
-									console.log(trainingSplit.indexOf('(.*)', i+1)-1);
-									answers.push(trainingSplit.slice(i+1, trainingSplit.indexOf('(.*)', i+1)).join(' '));
-									// TODO: complete instruSplit[tmpIdx-1] with autocomplete answers
-									continue actionInstructions;
-								}
-								// End of capturing group reached
-								if (instruSplit[tmpIdx] == trainingSplit[i+1]) {
-									// Join splited capturing group values in instruSplit :
-									// ['add', 'entity', 'Fiche', 'usager'] -> ['add', 'entity', 'Fiche usager']
-									const groupValue = instruSplit.slice(i, tmpIdx).join(' ');
-									instruSplit.splice(i, tmpIdx - i, groupValue);
+							const capturingGroupEnd = findCapturingGroupEnd(training[action].instructions, instruSplit, i, capturingGroupCount);
+							if (capturingGroupEnd == -1) {
+								// Regroup trainingsplit until next capturing group for longer answer ('with name' instead of 'with')
+								answers.push(trainingSplit.slice(i+1, trainingSplit.indexOf('(.*)', i+1)).join(' '));
+								continue actionInstructions;
+							}
+							else if (capturingGroupEnd == -2)
+								if (training[action].autocomplete && training[action].autocomplete[capturingGroupCount])
+									answers = training[action].autocomplete[capturingGroupCount-1](appName, capturingGroupValues);
+							else {
+								console.log("SARIA ?");
+								const groupValue = instruSplit.slice(i, capturingGroupEnd - i).join(' ');
+								console.log(`groupValue : ${groupValue}`);
+								if (groupValue != '') {
+									instruSplit.splice(i, capturingGroupEnd - i, groupValue);
 									capturingGroupValues.push(groupValue);
-									break;
 								}
 							}
 						}
