@@ -1,0 +1,140 @@
+<div id="fields" class="row">
+    <div data-field="f_label" class="fieldLineHeight col-xs-12">
+        <div class="form-group">
+            <label for="f_label" class="required">
+                {#__ key="entity.e_group.f_label"/}&nbsp;
+                {@inline_help field="f_label"}
+                <i data-field="f_label" class="inline-help fa fa-info-circle" style="color: #1085EE;"></i>
+                {/inline_help}
+            </label>
+            <input class="form-control input" placeholder='{#__ key="entity.e_group.f_label" /}' name="f_label" value="{test}" type="text" maxlength="255" required="">
+        </div>
+    </div>
+
+    {#elem1}
+        {field1}
+        {#elem2}
+            {field2}
+            {#elem3.elem4}
+                {field3}
+                {elem5.field4}
+{a.b}
+            {/elem3.elem4}
+        {/elem2}
+        {field1b}
+    {/elem1}
+    {field0}
+</div>
+
+<html>
+
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+
+    <style type="text/css">
+
+    * {
+        font-family: Arial;
+        font-size: 10px;
+    }
+    @media print {
+        .new-page {
+            page-break-before: always;
+        }
+    }
+
+    h4{
+        text-transform: uppercase;
+        font-size:16px; 
+        text-align: center;
+        margin: 0 25px 25px 25px;
+    }
+
+    .bold{
+        font-weight: bold;
+    }
+
+    body p{
+        line-height: 200%;
+        margin:10px;
+    }
+
+    body{
+        margin: 0 25px 0 25px ;
+    }
+</style>
+
+</head>
+
+<body>
+
+    <div style="display:none;">
+        <!--HEADER-->
+        <div style="width: 100%;text-align: center;">
+            <img style="height: 40px;margin:auto;" src="file:///{staticImagePath}/logofrance.png" alt="logoFR">
+            <img style="height: 35px;float:left;" src="file:///{staticImagePath}/logoOFII.png" alt="logoOfii">
+        </div>
+        <h4> Attestation du service fait</h4>
+        <!--HEADER-->
+    </div>
+
+    <p>
+        <span class="bold"> Service prescripteur&nbsp;:&nbsp;</span>{r_service_fait.r_service_p.f_nom_du_service_prescripteur}
+        <br>
+        <span class="bold"> Pôle d'activité&nbsp;:&nbsp;</span>{r_service_fait.f_pole_d_activite}
+        <br>
+        <span class="bold"> Interlocuteur (Nom-Prénom)&nbsp;:&nbsp;</span>{r_service_fait.f_interlocuteur}
+    </p>
+    
+    <p>
+        <span class="bold"> Marché n°&nbsp;:&nbsp;</span>{r_service_fait.f_marche_n_}
+        <br>
+        <span class="bold"> Nom du marché&nbsp;:&nbsp;</span>{r_service_fait.f_nom_du_marche}
+        <br>
+    </p>
+    
+    <p>
+        <span class="bold"> N° Engagement juridique&nbsp;:&nbsp;</span>ORD/{r_service_fait.f_n_ej}
+    </p>
+
+    <p>
+        <span class="bold">Service fait&nbsp;:&nbsp;</span>
+
+        <span style="margin-right:3px;">{@eq key=r_service_fait.f_service_fait value="total"}&#9746;{:else}&#9744;{/eq} Total&nbsp;</span>
+        <span>{@eq key=r_service_fait.f_service_fait value="partiel"}&#9746;{:else}&#9744;{/eq} Partiel</span>
+
+        <br>
+        <span style="margin-left: 20px;">Montant&nbsp;:&nbsp;</span>{r_service_fait.f_montant_ttc_du_sf}&nbsp;€TTC
+    </p>
+    <p>
+        <span class="bold">Commentaires&nbsp;:&nbsp;</span>
+        <br>
+        {r_service_fait.f_commentaires}
+    </p>
+
+
+    <div style="width: 100%; text-align: center; margin-top:25px;">
+        <div style="float:left; width: 50%;text-align: left;">
+            <p>Date &nbsp;:&nbsp;{r_service_fait.f_date}</p>
+        </div>
+
+        <div style="width: 50%;text-align: center;margin-top:10px; float: left;">
+            <p style="margin-left:10px;">Signature</p><br>
+            <img src="{r_service_fait.f_signature}" alt="Signature" height="75" width="120">
+        </div>
+    </div>
+
+    <div style="margin-top:25px">
+        <p>PJ&nbsp;:&nbsp; <br>
+
+            {#c_pieces_jointes___feb_682}{f_filename}
+            {/c_pieces_jointes___feb_682}
+
+        </p>
+
+    </div>
+
+
+</body>
+
+</html>
