@@ -82,7 +82,7 @@ function generateHtmlToPDF(options) {
 
 			const headerStartIdx = html.indexOf('<!--HEADER-->');
 			const headerEndIdx = html.indexOf('<!--HEADER-->', headerStartIdx + '<!--HEADER-->'.length) + '<!--HEADER-->'.length;
-			const header = html.substring(headerStartIdx, headerEndIdx);
+			const header = headerStartIdx >= 0 ? html.substring(headerStartIdx, headerEndIdx) : null;
 
 			const footerStartIdx = html.indexOf('<!--FOOTER-->');
 			const footerEndIdx = html.indexOf('<!--FOOTER-->', footerStartIdx + '<!--FOOTER-->'.length) + '<!--FOOTER-->'.length;
@@ -92,15 +92,15 @@ function generateHtmlToPDF(options) {
 			html = html.replace(footer, '');
 
 			footer = footer.replace('**page**', '{{page}}');
-            footer = footer.replace('**pages**', '{{pages}}');
+			footer = footer.replace('**pages**', '{{pages}}');
 
-			pdf.create(html, {
+			const optionsPDF = {
 				orientation: "portrait",
 				format: "A4",
 				border: {
-					top: "0px",
+					top: "10px",
 					right: "15px",
-					bottom: "0px",
+					bottom: "10px",
 					left: "15px"
 				},
 				header: {
@@ -111,7 +111,13 @@ function generateHtmlToPDF(options) {
 					height: "50px",
 					contents: footer
 				}
-			}).toFile(tmpFileName, err => {
+			}
+
+			if(!header){
+				optionsPDF.header = header;
+			}
+
+			pdf.create(html, optionsPDF).toFile(tmpFileName, err => {
 				if (err)
 					return reject(err);
 
